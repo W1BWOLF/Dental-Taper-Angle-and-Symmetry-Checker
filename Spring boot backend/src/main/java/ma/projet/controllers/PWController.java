@@ -12,6 +12,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/PW")
+@CrossOrigin("*")
 public class PWController {
     @Autowired
     private PWService pwService;

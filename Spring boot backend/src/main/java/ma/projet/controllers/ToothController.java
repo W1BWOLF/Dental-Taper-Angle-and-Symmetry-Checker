@@ -13,6 +13,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/Tooth")
+@CrossOrigin("*")
 public class ToothController {
     @Autowired
     private ToothService toothService;

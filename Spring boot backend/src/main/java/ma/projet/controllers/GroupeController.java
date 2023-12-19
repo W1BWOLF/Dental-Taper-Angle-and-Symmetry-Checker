@@ -13,6 +13,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/Groupe")
+@CrossOrigin("*")
 public class GroupeController {
     @Autowired
     private GroupeService groupeService;

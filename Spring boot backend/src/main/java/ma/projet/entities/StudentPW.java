@@ -1,9 +1,6 @@
 package ma.projet.entities;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -18,12 +15,20 @@ import java.util.Date;
 public class StudentPW {
 
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @EmbeddedId
+    private StudentPWID id;
+
     private String time ;
     private String imageFront ;
     private Date date;
+
+    @ManyToOne
+    @MapsId("pwId")
+    private PW pw;
+
+    @ManyToOne
+    @MapsId("studentId")
+    private Student student;
 
 
 }
