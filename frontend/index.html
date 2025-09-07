@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dental Checker Dashboard</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for a modern look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Use the Inter font loaded from Google Fonts */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white antialiased">
+
+    <div class="flex h-screen">
+        <!-- Sidebar Navigation -->
+        <aside class="w-64 bg-gray-800 p-6 flex flex-col">
+            <h1 class="text-2xl font-bold mb-8">Dental Dashboard</h1>
+            <nav>
+                <ul class="space-y-2" id="api-endpoints">
+                    <!-- Endpoints will be dynamically populated here, but we can add them manually -->
+                    <li><button onclick="fetchData('students')" class="w-full text-left px-4 py-2 rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors">Students</button></li>
+                    <li><button onclick="fetchData('professors')" class="w-full text-left px-4 py-2 rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors">Professors</button></li>
+                    <li><button onclick="fetchData('teeth')" class="w-full text-left px-4 py-2 rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors">Teeth</button></li>
+                    <li><button onclick="fetchData('groupes')" class="w-full text-left px-4 py-2 rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors">Groupes</button></li>
+                    <li><button onclick="fetchData('pws')" class="w-full text-left px-4 py-2 rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors">PWs</button></li>
+                    <li><button onclick="fetchData('admins')" class="w-full text-left px-4 py-2 rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors">Admins</button></li>
+                    <li><button onclick="fetchData('users')" class="w-full text-left px-4 py-2 rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors">Users</button></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 p-8 overflow-y-auto">
+            <header class="mb-8">
+                <h2 id="content-title" class="text-3xl font-semibold">Data from Backend</h2>
+            </header>
+            <div id="results" class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                <p class="text-gray-400">Select an endpoint from the left to view data.</p>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        /**
+         * Dynamically determines the backend URL.
+         * In GitHub Codespaces, it constructs the correct forwarded URL for the backend.
+         * Otherwise, it falls back to localhost.
+         * @returns {string} The base URL for the API.
+         */
+        function getApiBaseUrl() {
+            // Check if the frontend is running in a GitHub Codespaces environment
+            if (window.location.hostname.endsWith('.app.github.dev')) {
+                // The hostname for a forwarded port in Codespaces is like:
+                // [codespace-name]-[port].[guid].app.github.dev
+                // We need to replace the frontend port with the backend port (8080)
+                const newHostname = window.location.hostname.replace(/-\d+\./, '-8080.');
+                return `https://${newHostname}`;
+            }
+            // For local development outside of Codespaces, use localhost
+            return 'http://localhost:8080';
+        }
+
+        const API_BASE_URL = getApiBaseUrl();
+
+        /**
+         * Fetches data from a given backend endpoint and displays it.
+         * @param {string} endpoint The API endpoint to fetch (e.g., 'students').
+         */
+        async function fetchData(endpoint) {
+            const resultsDiv = document.getElementById('results');
+            const contentTitle = document.getElementById('content-title');
+
+            // 1. Set loading state
+            contentTitle.textContent = `Data for: ${endpoint}`;
+            resultsDiv.innerHTML = '<p class="text-center text-gray-400">Loading...</p>';
+
+            try {
+                // 2. Fetch data from the backend
+                const response = await fetch(`${API_BASE_URL}/${endpoint}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+
+                // The data is nested under '_embedded.<endpoint_name>'
+                const items = data._embedded ? data._embedded[endpoint] : [];
+
+                // 3. Display data or a 'not found' message
+                if (items && items.length > 0) {
+                    resultsDiv.innerHTML = createTable(items);
+                } else {
+                    resultsDiv.innerHTML = `<p class="text-center text-gray-400">No data found for '${endpoint}'. The database is likely empty.</p>`;
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                resultsDiv.innerHTML = `
+                    <div class="text-center text-red-400">
+                        <p class="font-bold">Failed to fetch data.</p>
+                        <p>Please ensure the Java backend application is running on port 8080.</p>
+                        <p class="mt-2 text-sm text-gray-500">Error: ${error.message}</p>
+                    </div>`;
+            }
+        }
+
+        /**
+         * Creates an HTML table from an array of objects.
+         * @param {Array<Object>} dataArray The array of data to display.
+         * @returns {string} The HTML string for the table.
+         */
+        function createTable(dataArray) {
+            if (dataArray.length === 0) return '';
+
+            // Get headers from the keys of the first object
+            const headers = Object.keys(dataArray[0]);
+
+            // Create table header
+            let tableHtml = `
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-700">
+                        <thead class="bg-gray-700">
+                            <tr>`;
+            headers.forEach(header => {
+                tableHtml += `<th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">${header}</th>`;
+            });
+            tableHtml += `</tr></thead><tbody class="bg-gray-800 divide-y divide-gray-700">`;
+
+            // Create table rows
+            dataArray.forEach(item => {
+                tableHtml += '<tr>';
+                headers.forEach(header => {
+                    // Handle objects in cells (like the '_links' property)
+                    let cellData = item[header];
+                    if (typeof cellData === 'object' && cellData !== null) {
+                        cellData = JSON.stringify(cellData, null, 2);
+                        tableHtml += `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400"><pre>${cellData}</pre></td>`;
+                    } else {
+                        tableHtml += `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">${cellData}</td>`;
+                    }
+                });
+                tableHtml += '</tr>';
+            });
+
+            tableHtml += '</tbody></table></div>';
+            return tableHtml;
+        }
+
+        // Fetch initial data when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchData('students');
+        });
+    </script>
+
+</body>
+</html>
+
